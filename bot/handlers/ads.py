@@ -1,9 +1,9 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command
+from aiogram.dispatcher import Text
 from aiogram.types import Message, ReplyKeyboardRemove
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from database.db_utils import add_ad
+from aiogram.dispatcher import State, StatesGroup
+from database.db_utils import add_ad, get_all_ads
 from main import dp
 
 
@@ -11,18 +11,18 @@ class AdCreation(StatesGroup):
     waiting_for_description = State()
     waiting_for_price = State()
 
-@dp.message_handler(Command("create_ad"))
+@dp.message_handler(commands=["create_ad"])
 async def create_ad_start(message: Message):
     await message.answer("Пожалуйста, отправьте описание вашего изделия.")
     await AdCreation.waiting_for_description.set()
 
-@dp.message_handler(state=AdCreation.waiting_for_description)
+@dp.message_handler(lambda message: not message.text.isdigit(), state=AdCreation.waiting_for_description)
 async def enter_description(message: Message, state: FSMContext):
     await state.update_data(description=message.text)
     await message.answer("Теперь укажите цену вашего изделия.")
     await AdCreation.waiting_for_price.set()
 
-@dp.message_handler(state=AdCreation.waiting_for_price)
+@dp.message_handler(lambda message: message.text.isdigit(), state=AdCreation.waiting_for_price)
 async def enter_price(message: Message, state: FSMContext):
     data = await state.get_data()
     description = data.get("description")
@@ -32,10 +32,7 @@ async def enter_price(message: Message, state: FSMContext):
     await message.answer("Ваше объявление успешно создано!", reply_markup=ReplyKeyboardRemove())
     await state.finish()
 
-
-from database.db_utils import get_all_ads
-
-@dp.message_handler(Command("show_ads"))
+@dp.message_handler(commands=["show_ads"])
 async def show_all_ads(message: Message):
     ads = get_all_ads()
     
@@ -48,4 +45,3 @@ async def show_all_ads(message: Message):
         ads_text += f"User ID: {user_id}\nDescription: {description}\nPrice: {price}\n\n"
     
     await message.answer(ads_text)
-

@@ -1,6 +1,5 @@
 from aiogram import types
-from aiogram.dispatcher.filters import Command
-
+from aiogram.dispatcher import Command
 from main import dp
 
 @dp.message_handler(Command("start"))
